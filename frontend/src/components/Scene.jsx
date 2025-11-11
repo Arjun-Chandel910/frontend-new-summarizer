@@ -2,6 +2,7 @@ import { useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
 import { useRef } from "react";
 
+import NewsPaper from "./NewsPaper";
 function SpinningCube() {
   const meshRef = useRef();
 
@@ -27,7 +28,8 @@ function Scene() {
       <ambientLight />
       <directionalLight position={[10, 10, 5]} />
       <OrbitControls />
-      <SpinningCube />
+      <NewsPaper position={[0, 0, 0]} />
+      {/* <SpinningCube /> */}
     </>
   );
 }
