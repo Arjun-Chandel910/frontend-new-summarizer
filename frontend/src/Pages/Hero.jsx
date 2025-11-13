@@ -13,12 +13,15 @@ const Hero = () => {
       y: 0,
       duration: 2,
       ease: "power2.out",
-      delay: 4,
+      delay: 2,
     });
   }, []);
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <div
+      id="hero"
+      className="relative w-full h-screen overflow-hidden bg-black"
+    >
       {/* Newsroom Universe Background */}
       <div ref={backgroundRef} className="absolute inset-0">
         {/* Cosmic Background with News Data */}
@@ -68,7 +71,6 @@ const Hero = () => {
             ></div>
           </div>
         </div>
-
         {/* News Portal/Vortex Effect */}
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="relative">
@@ -123,7 +125,6 @@ const Hero = () => {
             </div>
           </div>
         </div>
-
         {/* News Data Particles */}
         <div className="absolute inset-0 pointer-events-none">
           {[...Array(30)].map((_, i) => (
@@ -139,7 +140,6 @@ const Hero = () => {
             />
           ))}
         </div>
-
         {/* News Headlines Floating in Space */}
         <div className="absolute inset-0">
           <div className="absolute top-16 left-16 text-cyan-300/70 text-sm font-mono animate-pulse">
@@ -163,9 +163,8 @@ const Hero = () => {
           >
             INITIALIZING BROADCAST...
           </div>
-        </div>
-
-        {/* Universe Grid */}
+        </div>{" "}
+        1{/* Universe Grid */}
         <div className="absolute inset-0 opacity-10">
           <div
             className="absolute inset-0"
@@ -178,14 +177,12 @@ const Hero = () => {
             }}
           ></div>
         </div>
-
         {/* News Portal Title */}
         <div className="absolute top-8 left-1/2 transform -translate-x-1/2 text-center">
           <h1 className="text-4xl md:text-6xl font-bold text-transparent bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-600 bg-clip-text animate-pulse">
             NEWS UNIVERSE
           </h1>
         </div>
-
         {/* Status Indicators */}
         <div className="absolute bottom-8 left-8 space-y-2">
           <div className="bg-black/50 backdrop-blur-sm rounded px-3 py-1 border border-cyan-400/30">
@@ -199,7 +196,6 @@ const Hero = () => {
             </div>
           </div>
         </div>
-
         <div className="absolute bottom-8 right-8 space-y-2">
           <div className="bg-black/50 backdrop-blur-sm rounded px-3 py-1 border border-purple-400/30">
             <div className="text-xs text-purple-400 font-mono">
@@ -215,9 +211,6 @@ const Hero = () => {
       </div>
 
       {/* 3D Scene*/}
-      <div className="absolute inset-0 z-10">
-        <Scene />
-      </div>
     </div>
   );
 };
