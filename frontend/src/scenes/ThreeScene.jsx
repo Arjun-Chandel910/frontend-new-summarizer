@@ -2,7 +2,7 @@ import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-
+const textureLoader = new THREE.TextureLoader();
 const ThreeScene = () => {
   const mountRef = useRef(null);
 
@@ -34,7 +34,7 @@ const ThreeScene = () => {
     const ambient = new THREE.AmbientLight(0xffffff, 1.0);
     scene.add(ambient);
 
-    const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+    const dirLight = new THREE.DirectionalLight(0xffffff, 1);
     dirLight.position.set(5, 10, 5);
     dirLight.castShadow = true;
     scene.add(dirLight);
@@ -47,9 +47,14 @@ const ThreeScene = () => {
     scene.add(modelsGroup);
 
     // Ground
+    const groundTexture = textureLoader.load("/texture/ground.jpeg");
+    groundTexture.wrapS = THREE.RepeatWrapping;
+    groundTexture.wrapT = THREE.RepeatWrapping;
+    groundTexture.repeat.set(10, 10);
+
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(50, 50),
-      new THREE.MeshStandardMaterial({ color: 0x775533 })
+      new THREE.MeshStandardMaterial({ map: groundTexture })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.position.y = -2.2;
