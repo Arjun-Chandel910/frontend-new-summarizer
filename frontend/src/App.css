@@ -1,9 +1,0 @@
-.container {
-  /* background-color: red; */
-  background-image: url("C:\Users\dell\Desktop\Threejs_Frontend\frontend\src\assets\Gemini_Generated_Image_ccyy1fccyy1fccyy.png");
-}
-
-canvas {
-  position: absolute;
-  z-index: 200;
-}
