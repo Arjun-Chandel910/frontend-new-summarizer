@@ -20,7 +20,7 @@ const ThreeScene = () => {
 
     // Lenis smooth scroll
     const lenis = new Lenis({
-      duration: 1.2,
+      duration: 3,
       easing: (t) => t * (2 - t),
       smooth: true,
     });
@@ -66,7 +66,7 @@ const ThreeScene = () => {
     renderer.domElement.style.left = "0";
     renderer.domElement.style.width = "100%";
     renderer.domElement.style.height = "100%";
-    renderer.domElement.style.zIndex = "9999";
+    renderer.domElement.style.zIndex = "100";
     renderer.domElement.style.pointerEvents = "none";
     document.body.appendChild(renderer.domElement);
 
@@ -120,6 +120,7 @@ const ThreeScene = () => {
       const chair = gltf.scene;
       chair.scale.set(2, 2, 2);
       chair.position.set(0, 0, 0);
+      chair.rotation.y = Math.PI / 2;
 
       chair.traverse((c) => {
         if (c.isMesh) c.castShadow = true;
@@ -131,14 +132,16 @@ const ThreeScene = () => {
     // --- Newspaper ---
     loader.load("/models/newspaper.glb", (gltf) => {
       const paper = gltf.scene;
-      paper.scale.set(0.5, 0.5, 0.7);
-      paper.position.set(0, 1.7, 0.1);
+      paper.scale.set(0.4, 0.4, 0.7);
+      paper.scale.set(0.4, 0.4, 0.7);
+      paper.position.set(-2.9, -0.3, 0.3);
 
       paper.traverse((c) => {
         if (c.isMesh) c.castShadow = true;
       });
+      scene.add(paper);
 
-      modelsGroup.add(paper);
+      // modelsGroup.add(paper);
     });
 
     // --- Woman ---
