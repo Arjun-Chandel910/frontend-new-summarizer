@@ -1,10 +1,11 @@
+// ThreeScene.jsx
 import React, { useEffect, useRef } from "react";
 import * as THREE from "three";
 import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 const textureLoader = new THREE.TextureLoader();
+import { createTornPaperMesh } from "../utils/createTornPaperMesh";
 
-// scroll handling imports
 import Lenis from "lenis";
 import gsap from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
@@ -17,6 +18,7 @@ const ThreeScene = () => {
   useEffect(() => {
     let mixer = null;
     let treeMixer = null;
+    const papers = [];
 
     // Lenis smooth scroll
     const lenis = new Lenis({
@@ -30,7 +32,6 @@ const ThreeScene = () => {
     });
 
     const lenisRaf = (time) => {
-      // gsap.ticker time is in seconds
       lenis.raf(time * 1000);
     };
 
@@ -40,9 +41,8 @@ const ThreeScene = () => {
     // Scene
     const scene = new THREE.Scene();
 
-    // Day/night background colors
-    const morningColor = new THREE.Color(0xa0c8f0); // light blue
-    const nightColor = new THREE.Color(0x0b1033); // deep blue
+    const morningColor = new THREE.Color(0xa0c8f0);
+    const nightColor = new THREE.Color(0x0b1033);
     scene.background = morningColor.clone();
 
     // Camera
@@ -70,7 +70,7 @@ const ThreeScene = () => {
     renderer.domElement.style.pointerEvents = "none";
     document.body.appendChild(renderer.domElement);
 
-    // Lighting (day to night capable, but never totally dark)
+    // Lighting
     const ambientDayColor = new THREE.Color(0xffffff);
     const ambientNightColor = new THREE.Color(0x222244);
     const ambient = new THREE.AmbientLight(ambientDayColor.clone(), 1.0);
@@ -93,9 +93,53 @@ const ThreeScene = () => {
     controls.azimuthalAngle = -Math.PI / 2;
     controls.update();
 
+    // Mouse tracking
+    const raycaster = new THREE.Raycaster();
+    const mouse = new THREE.Vector2();
+
+    const groundY = -2.18;
+
+    // Plane matching ground height: normal (0,1,0), constant = -groundY
+    const interactionPlane = new THREE.Plane(
+      new THREE.Vector3(0, 1, 0),
+      -groundY
+    ); // plane.y = groundY [web:97][web:229]
+    const mousePoint = new THREE.Vector3();
+
+    const handleMouseMove = (event) => {
+      mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+      mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+      raycaster.setFromCamera(mouse, camera);
+      const hit = raycaster.ray.intersectPlane(interactionPlane, mousePoint);
+      if (!hit) return;
+    };
+
+    window.addEventListener("mousemove", handleMouseMove);
+
     // Group for lady + chair + newspaper
     const modelsGroup = new THREE.Group();
     scene.add(modelsGroup);
+
+    // Torn papers
+    const paperTexture = textureLoader.load("/texture/newspaper.png");
+    for (let i = 0; i < 80; i++) {
+      const mesh = createTornPaperMesh(paperTexture);
+
+      const radius = 3;
+      const x = (Math.random() - 0.5) * radius * 2;
+      const z = -2 + (Math.random() - 0.5) * radius * 2;
+      mesh.position.set(x, groundY, z);
+      mesh.rotation.y = Math.random() * Math.PI * 2;
+
+      scene.add(mesh);
+
+      papers.push({
+        mesh,
+        vel: new THREE.Vector3(),
+        rotVel: new THREE.Vector3(),
+      });
+    }
 
     // Ground
     const groundTexture = textureLoader.load("/texture/ground.jpeg");
@@ -115,7 +159,7 @@ const ThreeScene = () => {
     // Loader
     const loader = new GLTFLoader();
 
-    // --- Chair ---
+    // Chair
     loader.load("/models/chair.glb", (gltf) => {
       const chair = gltf.scene;
       chair.scale.set(2, 2, 2);
@@ -129,22 +173,20 @@ const ThreeScene = () => {
       modelsGroup.add(chair);
     });
 
-    // --- Newspaper ---
+    // Newspaper GLB (hero paper)
     loader.load("/models/newspaper.glb", (gltf) => {
       const paper = gltf.scene;
-      paper.scale.set(0.4, 0.4, 0.7);
       paper.scale.set(0.4, 0.4, 0.7);
       paper.position.set(-2.9, -0.3, 0.3);
 
       paper.traverse((c) => {
         if (c.isMesh) c.castShadow = true;
       });
-      scene.add(paper);
 
-      // modelsGroup.add(paper);
+      scene.add(paper);
     });
 
-    // --- Woman ---
+    // Woman
     loader.load("/models/woman.glb", (gltf) => {
       const woman = gltf.scene;
       woman.scale.set(0.02, 0.02, 0.02);
@@ -163,7 +205,7 @@ const ThreeScene = () => {
       }
     });
 
-    // --- Trees (converted model) ---
+    // Trees
     loader.load("/models/tree_converted.glb", (gltf) => {
       const tree = gltf.scene;
 
@@ -175,7 +217,6 @@ const ThreeScene = () => {
           child.castShadow = true;
           child.receiveShadow = true;
 
-          // Ensure all materials are physically lit
           if (
             child.material &&
             (child.material.type === "MeshBasicMaterial" ||
@@ -190,10 +231,8 @@ const ThreeScene = () => {
           }
         }
       });
-
       scene.add(tree);
 
-      // Wind animation
       if (gltf.animations.length > 0) {
         treeMixer = new THREE.AnimationMixer(tree);
         const windAction = treeMixer.clipAction(gltf.animations[0]);
@@ -203,35 +242,32 @@ const ThreeScene = () => {
 
     // Sun and Moon
     const sunGeo = new THREE.SphereGeometry(1.5, 32, 32);
-    const sunMat = new THREE.MeshBasicMaterial({
-      color: 0xffee88, // bright warm sun
-    });
+    const sunMat = new THREE.MeshBasicMaterial({ color: 0xffee88 });
     const sun = new THREE.Mesh(sunGeo, sunMat);
     scene.add(sun);
 
     const moonGeo = new THREE.SphereGeometry(1, 32, 32);
     const moonMat = new THREE.MeshStandardMaterial({
-      color: 0xffffff, // pure white
-      emissive: 0xffffff, // glow
-      emissiveIntensity: 0.9, // brighter moon
+      color: 0xffffff,
+      emissive: 0xffffff,
+      emissiveIntensity: 0.9,
     });
     const moon = new THREE.Mesh(moonGeo, moonMat);
     scene.add(moon);
 
-    // Initial positions: sun far right so it exits quickly, moon left
-    sun.position.set(14, 6, -10); // further right
-    moon.position.set(-10, 4, -10); // left, comes in later
+    sun.position.set(14, 6, -10);
+    moon.position.set(-10, 4, -10);
     moon.visible = false;
 
-    // Stars (brighter at night)
+    // Stars
     const starsGeometry = new THREE.BufferGeometry();
     const starsCount = 500;
     const positions = new Float32Array(starsCount * 3);
     for (let i = 0; i < starsCount; i++) {
       const radius = 60;
-      positions[i * 3] = (Math.random() - 0.5) * radius * 2; // x
-      positions[i * 3 + 1] = Math.random() * radius + 10; // y
-      positions[i * 3 + 2] = (Math.random() - 0.5) * radius * 2; // z
+      positions[i * 3] = (Math.random() - 0.5) * radius * 2;
+      positions[i * 3 + 1] = Math.random() * radius + 10;
+      positions[i * 3 + 2] = (Math.random() - 0.5) * radius * 2;
     }
     starsGeometry.setAttribute(
       "position",
@@ -239,17 +275,16 @@ const ThreeScene = () => {
     );
     const starsMaterial = new THREE.PointsMaterial({
       color: 0xffffff,
-      size: 0.35, // bigger = brighter
+      size: 0.35,
       transparent: true,
-      opacity: 0, // start invisible
+      opacity: 0,
     });
     const stars = new THREE.Points(starsGeometry, starsMaterial);
     scene.add(stars);
 
-    // Move group
     modelsGroup.position.set(-3, -2, 0);
 
-    // GSAP ScrollTrigger for day -> night + camera rotation/zoom
+    // ScrollTrigger day/night etc.
     gsap.to(
       {},
       {
@@ -261,27 +296,23 @@ const ThreeScene = () => {
           onUpdate: (self) => {
             const progress = self.progress;
 
-            // Sun: from further right fully off-screen quickly (0–0.25)
             if (progress <= 0.25) {
-              sun.position.x = 14 + 30 * (progress / 0.25); // 14 -> 44
+              sun.position.x = 14 + 30 * (progress / 0.25);
               sun.visible = true;
             } else {
               sun.visible = false;
             }
 
-            // Moon: from left into a visible position (0.35–1)
             if (progress >= 0.35) {
-              const t = (progress - 0.35) / 0.65; // 0–1
-              moon.position.x = -10 + 16 * t; // -10 -> 6
+              const t = (progress - 0.35) / 0.65;
+              moon.position.x = -10 + 16 * t;
               moon.visible = true;
             } else {
               moon.visible = false;
             }
 
-            // Background color interpolation
             scene.background = morningColor.clone().lerp(nightColor, progress);
 
-            // Light color & intensity interpolation (never fully dark)
             ambient.color = ambientDayColor
               .clone()
               .lerp(ambientNightColor, progress);
@@ -293,7 +324,6 @@ const ThreeScene = () => {
             ambient.intensity = Math.max(1.0 - 0.4 * progress, minAmbient);
             dirLight.intensity = Math.max(1.0 - 0.5 * progress, minDir);
 
-            // Stars fade in and get bright during last 40% (0.6–1)
             const nightFactor = THREE.MathUtils.clamp(
               (progress - 0.6) / 0.4,
               0,
@@ -301,21 +331,22 @@ const ThreeScene = () => {
             );
             starsMaterial.opacity = nightFactor;
 
-            // Slight scene rotation to the right
-            const maxRotation = THREE.MathUtils.degToRad(5); // 5 degrees
+            const maxRotation = THREE.MathUtils.degToRad(5);
             scene.rotation.y = maxRotation * progress;
 
-            // Subtle zoom-out on scroll (move camera slightly back)
             const baseZ = 5;
-            const zoomOutZ = 7.5; // a little further
+            const zoomOutZ = 7.5;
             camera.position.z = baseZ + (zoomOutZ - baseZ) * progress;
           },
         },
       }
     );
 
-    // Animation loop
+    // Animation loop with mouse repulsion
     const clock = new THREE.Clock();
+    const repulsionRadius = 0.5;
+    const repulsionStrength = 1.5;
+
     const animate = () => {
       requestAnimationFrame(animate);
 
@@ -323,6 +354,29 @@ const ThreeScene = () => {
 
       if (mixer) mixer.update(delta);
       if (treeMixer) treeMixer.update(delta);
+
+      papers.forEach((p) => {
+        const dist = p.mesh.position.distanceTo(mousePoint);
+
+        if (dist < repulsionRadius) {
+          const dir = new THREE.Vector3()
+            .subVectors(p.mesh.position, mousePoint)
+            .normalize()
+            .multiplyScalar(repulsionStrength * (1 - dist / repulsionRadius));
+
+          p.vel.add(dir);
+          p.rotVel.x += (Math.random() - 0.5) * 2;
+          p.rotVel.z += (Math.random() - 0.5) * 2;
+        }
+
+        p.mesh.position.addScaledVector(p.vel, delta);
+        p.mesh.rotation.x += p.rotVel.x * delta;
+        p.mesh.rotation.y += p.rotVel.y * delta;
+        p.mesh.rotation.z += p.rotVel.z * delta;
+
+        p.vel.multiplyScalar(0.96);
+        p.rotVel.multiplyScalar(0.96);
+      });
 
       controls.update();
       camera.lookAt(0, 0, 0);
@@ -342,6 +396,7 @@ const ThreeScene = () => {
     // Cleanup
     return () => {
       window.removeEventListener("resize", handleResize);
+      window.removeEventListener("mousemove", handleMouseMove);
       document.body.removeChild(renderer.domElement);
       renderer.dispose();
 
